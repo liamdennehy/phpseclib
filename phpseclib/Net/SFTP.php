@@ -420,7 +420,7 @@ class SFTP extends SSH2
      * Login
      *
      * @param string $username
-     * @param $args[] string password
+     * @param string[] ...$args
      * @throws \UnexpectedValueException on receipt of unexpected packets
      * @return bool
      * @access public
@@ -1054,7 +1054,7 @@ class SFTP extends SSH2
      * $sftp->setListOrder();
      *    Don't do any sort of sorting
      *
-     * @param $args[]
+     * @param string[] ...$args
      * @access public
      */
     public function setListOrder(...$args)
@@ -1733,7 +1733,7 @@ class SFTP extends SSH2
      * Helper function for directory creation
      *
      * @param string $dir
-     * @param string $attr
+     * @param int $mode
      * @return bool
      * @access private
      */
@@ -2006,7 +2006,9 @@ class SFTP extends SSH2
                 $this->touch($remote_file, $stat['mtime'], $stat['atime']);
             }
 
-            fclose($fp);
+            if (isset($fp) && is_resource($fp)) {
+                fclose($fp);
+            }
         }
 
         return $this->close_handle($handle);
@@ -2157,9 +2159,6 @@ class SFTP extends SSH2
                 }
                 $packet = null;
                 $read+= $packet_size;
-                if (is_callable($progressCallback)) {
-                    $progressCallback($read);
-                }
                 $i++;
             }
 
@@ -2188,6 +2187,9 @@ class SFTP extends SSH2
                             $content.= $temp;
                         } else {
                             fputs($fp, $temp);
+                        }
+                        if (is_callable($progressCallback)) {
+                            call_user_func($progressCallback, $offset);
                         }
                         $temp = null;
                         break;
@@ -2851,6 +2853,7 @@ class SFTP extends SSH2
      *
      * @param int $type
      * @param string $data
+     * @param int $request_id
      * @see self::_get_sftp_packet()
      * @see self::send_channel_packet()
      * @return bool
